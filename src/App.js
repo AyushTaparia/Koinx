@@ -1,6 +1,43 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import TradingViewWidget from "./component/TradingViewWidget";
 
 function App() {
+  const [cryptoData, setCryptoData] = useState({});
+  const [coins, setCoins] = useState([]);
+
+  useEffect(() => {
+    fetchCryptoData();
+    fetchCoins();
+  }, []);
+
+  // Functions for API call
+  const fetchCryptoData = async () => {
+    try {
+      const response = await fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=inr%2Cusd&include_24hr_change=true"
+      );
+      const data = await response.json();
+      setCryptoData(data.bitcoin);
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    }
+  };
+
+  const fetchCoins = async () => {
+    try {
+      const response = await fetch(
+        "https://api.coingecko.com/api/v3/search/trending"
+      );
+      const data = await response.json();
+      setCoins(data.coins);
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    }
+  };
+
+  const top3Coins = coins
+    .sort((a, b) => a.item.market_cap_rank - b.item.market_cap_rank)
+    .slice(0, 3);
   return (
     <div className="flex flex-col">
       {/* navbar */}
@@ -76,18 +113,24 @@ function App() {
             </button>
           </div>
           <div className="flex flex-row mt-8">
-            <div className="font-medium text-3xl pr-8">$46,953.04</div>
+            <div className="font-medium text-3xl pr-8">
+              $ {new Intl.NumberFormat().format(cryptoData?.usd)}
+            </div>
             <button className="flex flex-row bg-green-100 px-2 text-green-500 rounded-sm font-sans font-medium">
               <img
                 src="images/img_polygon_2.svg"
                 alt="Polygon 2"
                 className=" mt-3 p-1"
               />
-              <p className="mt-1 font-medium text-lg px-1">2.51%</p>
+              <p className="mt-1 font-medium text-lg px-1">
+                {cryptoData.usd_24h_change?.toFixed(2)}%
+              </p>
             </button>
             <p className="text-gray-400 mt-1 px-4 font-medium">(24H)</p>
           </div>
-          <p className="mt-2 text-lg font-medium">₹ 39,42,343</p>
+          <p className="mt-2 text-lg font-medium">
+            ₹ {new Intl.NumberFormat().format(cryptoData?.inr)}
+          </p>
           <hr className="my-6 border-gray-300" />
           <div className="flex justify-between">
             <div className="text-lg font-medium">Bitcoin Price Chart (USD)</div>
@@ -102,50 +145,9 @@ function App() {
               <ul className="cursor-pointer hover:text-blue-700">ALL</ul>
             </div>
           </div>
-          <div className="flex flex-col space-y-[7vh] mt-12 text-xs font-medium text-gray-600">
-            <div className="flex items-center">
-              <ul>47,000</ul>
-              <hr className="border-gray-300 ml-2 w-[55rem]" />
-            </div>
-            <div className="flex items-center">
-              <ul>46,000</ul>
-              <hr className="border-gray-300 ml-2 w-[55rem]" />
-            </div>
-            <div className="flex items-center">
-              <ul>45,000</ul>
-              <hr className="border-gray-300 ml-2 w-[55rem]" />
-            </div>
-            <div className="flex items-center">
-              <ul>44,000</ul>
-              <hr className="border-gray-300 ml-2 w-[55rem]" />
-            </div>
-            <div className="flex items-center">
-              <ul>43,000</ul>
-              <hr className="border-gray-300 ml-2 w-[55rem]" />
-            </div>
-            <div className="flex items-center">
-              <ul>42,000</ul>
-              <hr className="border-gray-300 ml-2 w-[55rem]" />
-            </div>
-            <img
-              src="images/img_group.png"
-              alt="image"
-              className="h-[54vh] w-[54rem] object-cover absolute ml-14 pb-10"
-            />
-            <img
-              src="images/img_group_indigo_100.svg"
-              alt="image_one"
-              className="h-10 w-[55rem] ml-10"
-            />
-          </div>
-          <div className="flex flex-row text-xs font-bold text-gray-600 ml-10">
-            <ul>16 Dec</ul>
-            <ul className="ml-[12vh]">17 Dec</ul>
-            <ul className="ml-[12vh]">18 Dec</ul>
-            <ul className="ml-[12vh]">19 Dec</ul>
-            <ul className="ml-[13vh]">20 Dec</ul>
-            <ul className="ml-[12vh]">21 Dec</ul>
-            <ul className="ml-[12vh]">22 Dec</ul>
+          {/* TradingViewWidget component */}
+          <div className="mt-5 w-[58rem] h-[30rem]">
+            <TradingViewWidget />
           </div>
         </div>
 
@@ -182,69 +184,32 @@ function App() {
           </div>
           <div className="rounded-2xl h-[32vh] bg-white border border-gray-300 p-6 shadow-md">
             {/* Content for the white container */}
-            <div className="text-2xl font-medium">Trending Coins (24H)</div>
-            <div className="flex justify-between mt-5">
-              <div className="flex flex-row space-x-2">
-                <button className="bg-indigo-400 text-black px-3 rounded-full font-sans font-medium">
-                  <img src="images/img_component_50.svg" className="w-2" />
-                </button>
-                <p className="font-medium">Ethereum (ETH)</p>
-              </div>
-              <div>
-                <button className="flex flex-row bg-green-100 px-2 text-green-500 rounded-sm font-sans font-medium">
+            <div className="text-2xl font-medium mb-4">Trending Coins (24H)</div>
+            {top3Coins.map((coin) => (
+              <div
+                key={coin.item.id}
+                className="flex flex-row justify-between items-center w-full space-y-[3vh]"
+              >
+                <div className="flex flex-row justify-start items-center gap-1.5">
+                  <button className="w-[24px]">
+                    <img src={coin.item.thumb} alt={coin.item.name} />
+                  </button>
+                  <div size="2xl" as="p" className="text-gray-900 font-medium">
+                    {coin.item.name} ({coin.item.symbol})
+                  </div>
+                </div>
+                <div className="flex flex-row bg-green-100 h-[3vh] py-2 px-4 w-[9vh] flex items-center justify-center">
                   <img
                     src="images/img_polygon_2.svg"
                     alt="Polygon 2"
-                    className="py-3"
+                    className="px-1"
                   />
-                  <p className="font-medium text-lg px-1">8.21%</p>
-                </button>
+                  <div className="text-green-600 text-xs font-medium">
+                    {coin.item.data.price_change_percentage_24h.usd.toFixed(2)}%
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex justify-between mt-5">
-              <div className="flex flex-row space-x-2">
-                <button>
-                  <img
-                    src="images/img_image_160.png"
-                    alt="image160_one"
-                    className="w-[35px] object-cover"
-                  />
-                </button>
-                <p className="font-medium mt-1">Bitcoin (BTC)</p>
-              </div>
-              <div>
-                <button className="flex flex-row bg-green-100 px-2 text-green-500 rounded-sm font-sans font-medium">
-                  <img
-                    src="images/img_polygon_2.svg"
-                    alt="Polygon 2"
-                    className="py-3"
-                  />
-                  <p className="font-medium text-lg px-1">5.26%</p>
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-between mt-5">
-              <div className="flex flex-row space-x-2">
-                <button>
-                  <img
-                    src="images/img_image_163.png"
-                    alt="image163_one"
-                    className="h-[33px] w-[33px] rounded-[50%]"
-                  />
-                </button>
-                <p className="font-medium mt-1">Polygon (MATIC)</p>
-              </div>
-              <div>
-                <button className="flex flex-row bg-green-100 px-2 text-green-500 rounded-sm font-sans font-medium">
-                  <img
-                    src="images/img_polygon_2.svg"
-                    alt="Polygon 2"
-                    className="py-3"
-                  />
-                  <p className="font-medium text-lg px-1">4.32%</p>
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
